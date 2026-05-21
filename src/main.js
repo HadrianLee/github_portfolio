@@ -1,60 +1,104 @@
 import './style.css'
-import javascriptLogo from './assets/javascript.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import { setupCounter } from './counter.js'
+import { GithubRepoViewer } from './GithubRepoViewer.js';
 
-document.querySelector('#app').innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${javascriptLogo}" class="framework" alt="JavaScript logo"/>
-    <img src="${viteLogo}" class="vite" alt="Vite logo" />
-  </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.js</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+const USERNAMES = ['HadrianLee', 'chhl1g24'];
+const CONTAINER_ID = 'repo-container';
 
-<div class="ticks"></div>
+async function init() {
+    const container = document.getElementById(CONTAINER_ID);
+    if (!container) return;
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src="${viteLogo}" alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript" target="_blank">
-          <img class="button-icon" src="${javascriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+    container.textContent = '';
+    container.appendChild(createPageHeader());
+    container.appendChild(createLoadingState());
 
-<div class="ticks"></div>
-<section id="spacer"></section>
-`
+    const content = document.createElement('main');
+    content.className = 'portfolio-grid';
 
-setupCounter(document.querySelector('#counter'))
+    const renderedProfiles = await Promise.all(USERNAMES.map(renderProfile));
+    content.append(...renderedProfiles.filter(Boolean));
+
+    container.querySelector('.loading-state')?.remove();
+    container.appendChild(content);
+}
+
+async function renderProfile(username) {
+    const viewer = new GithubRepoViewer(username);
+    const sections = await viewer.generateRepoListItems();
+
+    if (sections.length === 0) return null;
+
+    const profile = document.createElement('article');
+    profile.className = 'profile-panel';
+
+    const header = document.createElement('header');
+    header.className = 'profile-header';
+
+    const avatar = document.createElement('img');
+    avatar.className = 'profile-avatar';
+    avatar.src = `https://github.com/${username}.png?size=96`;
+    avatar.alt = `${username} GitHub avatar`;
+    avatar.loading = 'lazy';
+
+    const headingGroup = document.createElement('div');
+
+    const title = document.createElement('h2');
+    title.className = 'repo-user-heading';
+    title.textContent = username;
+
+    const link = document.createElement('a');
+    link.className = 'profile-link';
+    link.href = `https://github.com/${username}`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = `@${username}`;
+
+    headingGroup.appendChild(title);
+    headingGroup.appendChild(link);
+    header.appendChild(avatar);
+    header.appendChild(headingGroup);
+    profile.appendChild(header);
+    sections.forEach(section => profile.appendChild(section));
+
+    return profile;
+}
+
+function createPageHeader() {
+    const header = document.createElement('header');
+    header.className = 'page-header';
+
+    const eyebrow = document.createElement('p');
+    eyebrow.className = 'eyebrow';
+    eyebrow.textContent = 'GitHub portfolio';
+
+    const title = document.createElement('h1');
+    title.textContent = 'Repository work and public contributions';
+
+    const intro = document.createElement('p');
+    intro.className = 'page-intro';
+    intro.textContent = 'Recent repositories, pull request contributions, and language breakdowns pulled from the GitHub API.';
+
+    header.appendChild(eyebrow);
+    header.appendChild(title);
+    header.appendChild(intro);
+
+    return header;
+}
+
+function createLoadingState() {
+    const loading = document.createElement('div');
+    loading.className = 'loading-state';
+
+    const spinner = document.createElement('span');
+    spinner.className = 'loading-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+
+    const text = document.createElement('span');
+    text.textContent = 'Loading GitHub activity...';
+
+    loading.appendChild(spinner);
+    loading.appendChild(text);
+    return loading;
+}
+
+document.addEventListener('DOMContentLoaded', init);
